@@ -1,32 +1,13 @@
 const express = require('express');
 const app = express();
 const cors = require('cors')
+const Person = require('./models/person')
 
 app.use(express.json());
 app.use(cors())
 
 
-let persons = [{
-    "id": "1",
-    "name": "Arto Hellas",
-    "number": "040-123456"
-},
-{
-    "id": "2",
-    "name": "Ada Lovelace",
-    "number": "39-44-5323523"
-},
-{
-    "id": "3",
-    "name": "Dan Abramov",
-    "number": "12-43-234345"
-},
-{
-    "id": "4",
-    "name": "Mary Poppendieck",
-    "number": "39-23-6423122"
-}
-]
+let persons = [];
 
 
 function generateId() {
@@ -35,8 +16,17 @@ function generateId() {
     return String(maxId + 1)
 }
 
+app.get("/", (request, response) => {
+    response.send("Welcome you son of a gun")
+})
 app.get('/api/person', (request, respone) => {
-    respone.json(persons)
+    Person.find({})
+        .then(Persons => {
+            respone.json(Persons)
+        })
+        .catch((error) => {
+            console.log(error.message)
+        })
 })
 
 app.get("/info", (request, response) => {
@@ -58,10 +48,29 @@ app.get("/info", (request, response) => {
     const timeZoneName = Intl.DateTimeFormat().resolvedOptions().timeZone;
     response.send(`<p>Phonebook has info for ${persons.length} people <p/> <p> ${dayName} ${monthName} ${date}  ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} ${timeZoneString} (${timeZoneName})<p/>`)
 })
+app.post("/api/person", (request, response) => {
+    const body = request.body;
 
-app.get("/", (request, response) => {
-    response.send("Welcome you son of a gun")
+    if (body.name === '' || body.number === '') {
+        response.status(404).send({ error: "invalid name and number" })
+    }
+    const person = new Person({
+        "id": generateId(),
+        "name": body.name,
+        "number": body.number,
+    })
+    person.save()
+        .then(savedPerson => {
+            response.json(savedPerson)
+            console.log(savedPerson)
+        })
+        .catch((error) => {
+            console.log(error.message)
+            response.status(404).json({ error: "failed to save a person" })
+        })
 })
+
+
 
 app.delete("/api/person/:id", (request, response) => {
     const id = request.params.id
@@ -83,20 +92,7 @@ app.put("/api/person/:id", (request, response) => {
     response.json(noteToChange)
 })
 
-app.post("/api/person", (request, response) => {
-    const body = request.body;
 
-    if (body.name === '' || body.number === '') {
-        response.status(404).send({ error: "invalid name and number" })
-    }
-    const person = {
-        "id": generateId(),
-        "name": body.name,
-        "number": body.number,
-    }
-    persons = persons.concat(person)
-    response.status(203)
-})
 const PORT = 4011;
 
 app.listen(PORT, () => {
